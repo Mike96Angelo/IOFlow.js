@@ -1,4 +1,4 @@
-declare type IOFunc<TInput, TOutput> = (input: TInput) => TOutput;
+declare type IOFunc<TInput, TOutput> = (input: TInput) => Promise<TOutput> | TOutput;
 interface IOFlow<TInput, TOutput> {
     (input: TInput): void;
     addSubscriber: (subscriber: IOFlow<TOutput, any>) => void;

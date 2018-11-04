@@ -1,4 +1,4 @@
-type IOFunc<TInput, TOutput> = (input: TInput) => TOutput
+type IOFunc<TInput, TOutput> = (input: TInput) => Promise<TOutput> | TOutput
 type IOFuncCaller<TInput> = (input: TInput) => void
 
 interface IOFlow<TInput, TOutput> {
@@ -20,8 +20,6 @@ interface CreateIOFlow<TInput, TOutput> {
 interface IOFlowOptions {
   throttle?: number
   debounce?: number
-  // animationFrame / setImmediate
-  // immediate?: true
 }
 
 export default function createIOFlow<TInput, TOutput>(
