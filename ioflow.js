@@ -35,33 +35,48 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var SUBSCRIPTION_ERROR = 'IOFlow is subscribed to itself or one of its subscribers.';
+var assertNotInIOFlowStack = function (ioFlow, $_stack) {
+    if ($_stack.has(ioFlow)) {
+        throw new Error(SUBSCRIPTION_ERROR);
+    }
+    $_stack.add(ioFlow);
+};
 function createIOFlow(ioFunc, options) {
     var _this = this;
+    var ioFlow;
     var subscribers = new Set();
-    var ioFuncCaller = function (input) { return __awaiter(_this, void 0, void 0, function () {
-        var output;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, ioFunc(input)];
-                case 1:
-                    output = _a.sent();
-                    subscribers.forEach(function (subscriber) { return subscriber(output); });
-                    return [2 /*return*/];
-            }
+    var ioFuncCaller = function (input, $_stack) {
+        if ($_stack === void 0) { $_stack = new Set; }
+        return __awaiter(_this, void 0, void 0, function () {
+            var output;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        assertNotInIOFlowStack(ioFlow, $_stack);
+                        return [4 /*yield*/, ioFunc(input)];
+                    case 1:
+                        output = _a.sent();
+                        subscribers.forEach(function (subscriber) {
+                            subscriber(output, $_stack);
+                        });
+                        return [2 /*return*/];
+                }
+            });
         });
-    }); };
-    var ioFlow = function (input) {
-        ioFuncCaller(input);
+    };
+    ioFlow = function (input, $_stack) {
+        ioFuncCaller(input, $_stack);
     };
     if (options != null) {
         var lastInput_1;
         if (options.throttle != null) {
             var calling_1 = false;
-            ioFlow = function (input) {
+            ioFlow = function (input, $_stack) {
                 lastInput_1 = input;
                 if (!calling_1) {
                     setTimeout(function () {
-                        ioFuncCaller(lastInput_1);
+                        ioFuncCaller(lastInput_1, $_stack);
                         calling_1 = false;
                     }, options.throttle);
                     calling_1 = true;
@@ -70,10 +85,10 @@ function createIOFlow(ioFunc, options) {
         }
         if (options.debounce != null) {
             var timeout_1;
-            ioFlow = function (input) {
+            ioFlow = function (input, $_stack) {
                 lastInput_1 = input;
                 clearTimeout(timeout_1);
-                timeout_1 = setTimeout(function () { return ioFuncCaller(lastInput_1); }, options.debounce);
+                timeout_1 = setTimeout(function () { return ioFuncCaller(lastInput_1, $_stack); }, options.debounce);
             };
         }
     }

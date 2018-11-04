@@ -1,5 +1,11 @@
-type IOFunc<TInput, TOutput> = (input: TInput) => Promise<TOutput> | TOutput
-type IOFuncCaller<TInput> = (input: TInput) => void
+type IOFunc<TInput, TOutput> = (
+  input: TInput
+) => Promise<TOutput> | TOutput
+
+type IOFuncCaller<TInput> = (
+  input: TInput,
+  $_stack: Set<IOFlow<any, any>>
+) => void
 
 interface IOFlow<TInput, TOutput> {
   (input: TInput): void
@@ -10,7 +16,7 @@ interface IOFlow<TInput, TOutput> {
 }
 
 interface CreateIOFlow<TInput, TOutput> {
-  (input: TInput): void
+  (input: TInput, $_stack: Set<IOFlow<any, any>>): void
   addSubscriber?: IOFlow<TInput, TOutput>['addSubscriber']
   removeSubscriber?: IOFlow<TInput, TOutput>['removeSubscriber']
   subscribeTo?: IOFlow<TInput, TOutput>['subscribeTo']
@@ -22,22 +28,52 @@ interface IOFlowOptions {
   debounce?: number
 }
 
+const SUBSCRIPTION_ERROR = 'IOFlow is subscribed to itself or one of its subscribers.'
+
+const assertNotInIOFlowStack = (
+  ioFlow: IOFlow<any, any>,
+  $_stack: Set<IOFlow<any, any>>
+) => {
+  if ($_stack.has(ioFlow)) {
+    throw new Error(SUBSCRIPTION_ERROR)
+  }
+  $_stack.add(ioFlow)
+}
+
 export default function createIOFlow<TInput, TOutput>(
   ioFunc: IOFunc<TInput, TOutput>,
   options?: IOFlowOptions,
 ): IOFlow<TInput, TOutput> {
+  let ioFlow: CreateIOFlow<TInput, TOutput>
+
   const subscribers = new Set<IOFlow<TOutput, any>>()
 
-  const ioFuncCaller: IOFuncCaller<TInput> = async (input) => {
+  const ioFuncCaller: IOFuncCaller<TInput> = async (
+    input,
+    $_stack = new Set
+  ) => {
+    assertNotInIOFlowStack(
+      ioFlow as IOFlow<TInput, TOutput>,
+      $_stack
+    )
+
     const output = await ioFunc(input)
 
     subscribers.forEach(
-      (subscriber) => subscriber(output),
+      (subscriber) => {
+        (subscriber as CreateIOFlow<TOutput, any>)(
+          output,
+          $_stack
+        )
+      }
     )
   }
 
-  let ioFlow: CreateIOFlow<TInput, TOutput> = (input) => {
-    ioFuncCaller(input)
+  ioFlow = (
+    input,
+    $_stack
+  ) => {
+    ioFuncCaller(input, $_stack)
   }
 
   if (options != null) {
@@ -46,14 +82,20 @@ export default function createIOFlow<TInput, TOutput>(
     if (options.throttle != null) {
       let calling = false
 
-      ioFlow = (input) => {
+      ioFlow = (
+        input,
+        $_stack
+      ) => {
         lastInput = input
 
         if (!calling) {
-          setTimeout(() => {
-            ioFuncCaller(lastInput)
-            calling = false
-          }, options.throttle)
+          setTimeout(
+            () => {
+              ioFuncCaller(lastInput, $_stack)
+              calling = false
+            },
+            options.throttle
+          )
 
           calling = true
         }
@@ -63,33 +105,51 @@ export default function createIOFlow<TInput, TOutput>(
     if (options.debounce != null) {
       let timeout: any
 
-      ioFlow = (input) => {
+      ioFlow = (
+        input,
+        $_stack
+      ) => {
         lastInput = input
 
         clearTimeout(timeout)
 
-        timeout = setTimeout(() => ioFuncCaller(lastInput), options.debounce)
+        timeout = setTimeout(
+          () => ioFuncCaller(lastInput, $_stack),
+          options.debounce
+        )
       }
     }
   }
 
-  ioFlow.addSubscriber = (subscriber) => {
+  ioFlow.addSubscriber = (
+    subscriber
+  ) => {
     subscribers.add(subscriber)
   }
 
-  ioFlow.removeSubscriber = (subscriber) => {
+  ioFlow.removeSubscriber = (
+    subscriber
+  ) => {
     subscribers.delete(subscriber)
   }
 
-  ioFlow.subscribeTo = (...subscriptions) => {
+  ioFlow.subscribeTo = (
+    ...subscriptions
+  ) => {
     subscriptions.forEach(
-      (subscription) => subscription.addSubscriber(ioFlow as IOFlow<TInput, TOutput>),
+      (subscription) => subscription.addSubscriber(
+        ioFlow as IOFlow<TInput, TOutput>
+      ),
     )
   }
 
-  ioFlow.unsubscribeFrom = (...subscriptions) => {
+  ioFlow.unsubscribeFrom = (
+    ...subscriptions
+  ) => {
     subscriptions.forEach(
-      (subscription) => subscription.removeSubscriber(ioFlow as IOFlow<TInput, TOutput>),
+      (subscription) => subscription.removeSubscriber(
+        ioFlow as IOFlow<TInput, TOutput>
+      ),
     )
   }
 
