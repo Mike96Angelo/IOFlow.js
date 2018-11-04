@@ -1,0 +1,20 @@
+{
+  "name": "ioflow",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ioflow.js",
+  "types": "ioflow.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mike96Angelo/IOFlow.js.git"
+  },
+  "author": "Michaelangelo Jong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Mike96Angelo/IOFlow.js/issues"
+  },
+  "homepage": "https://github.com/Mike96Angelo/IOFlow.js#readme"
+}
