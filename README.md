@@ -13,12 +13,10 @@ myButton.onclick = myButtonHandler
 
 
 /* do something with the input stream */
-let doSomething = createIOFlow((event) => {
+let doSomething = myButtonHandler.addSubscriber((event) => {
   // Some cool code here
   // Return some value that will be passed to any subscribers.
 })
-
-doSomething.subscribeTo(myButtonHandler) 
 // This means that doSomething is called with the result of 
 // myButtonHandler being called which happens when myButton is clicked.
 
@@ -44,15 +42,13 @@ let myMultiSourceHandler = (function () {
   let a = 0
   let b = 0
 
-  let updateA = createIOFlow((newA) => a = newA)
-  let updateB = createIOFlow((newB) => b = newB)
-
-  updateA.subscribeTo(sourceOfA)
-  updateB.subscribeTo(sourceOfB)
+  let updateA = sourceOfA.addSubscriber((newA) => a = newA)
+  let updateB = sourceOfB.addSubscriber((newB) => b = newB)
 
   let handler = createIOFlow(() => a + b)
 
-  handler.subscribeTo(updateA, updateB)
+  updateA.addSubscriber(handler)
+  updateB.addSubscriber(handler)
   // If either updateA or updateB is called then handler will be called.
 
   return handler
@@ -72,25 +68,39 @@ let myAsyncThing2 = createIOFlow((input) => myAPICall(input))
 
 
 /* Want Analytics?  Keep things tidy; all analytics in one place. */
-createIOFlow((event) => Analytics.send('myButtonClicked'))
-  .subscribeTo(myButtonHandler)
+myButtonHandler.addSubscriber((event) => Analytics.send('myButtonClicked'))
+myButton2Handler.addSubscriber((event) => Analytics.send('myButton2Clicked'))
 
 
 /* Want Logs?  Keep things tidy; all logs in one place. */
 let myLog = createIOFlow((event) => console.log('myLog', event))
   
-myLog.subscribeTo(myButtonHandler)
-// myLog.subscribeTo(myOtherButtonHandler) 
+myButtonHandler.addSubscriber(myLog)
+myButton2Handler.addSubscriber(myLog)
 // You can subscribe to any number of IOFLow sources
 
 
-/* Need to unsubscribe?  Sure, but why would you need to? */
-myIOFlow.unsubscribeFrom(myOtherIOFlow)
+/* Need to unsubscribe?  Sure, its easy! */
+myIOFlow.removeSubscriber(myOtherIOFlow)
 
 
-/* Can I call an IOFlow directly?  Sure you can! but its best to avoid it. */
+/* Don't want to send anything to your subscribers? */
+let myThing = createIOFlow((input, stopPropagation) => {
+  if (someCondition) {
+    return stopPropagation()
+    // Don't send to subscribers
+  }
+})
+
+
+/* Can I call an IOFlow directly?  Sure you can! */
 myIOFlow(data)
 // This will process data then send the result to any subscribers.
-// This pattern should be avoided, the only time that this pattern 
-// should be used is on app startup.
+// You should only call an IOFlow if it is a source node -- meaning it doesn't 
+// subscribe to any one else. 
+
+// e.g. myAPI.getArticle({id: 1}) where myAPI.getArticle is an IOFlow.
+// This means you can have some UI renderer that subscribes to myAPI.getArticle
+// and when ever myAPI.getArticle finishes your UI renderer will get called with
+// the article.
 ```

@@ -2,10 +2,10 @@
   "name": "ioflow",
   "version": "1.0.0",
   "description": "",
-  "main": "ioflow.js",
-  "types": "ioflow.d.ts",
+  "main": "lib/ioflow.js",
+  "types": "lib/ioflow.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -16,5 +16,11 @@
   "bugs": {
     "url": "https://github.com/Mike96Angelo/IOFlow.js/issues"
   },
-  "homepage": "https://github.com/Mike96Angelo/IOFlow.js#readme"
+  "homepage": "https://github.com/Mike96Angelo/IOFlow.js#readme",
+  "devDependencies": {
+    "@types/jest": "^23.3.9",
+    "jest": "^23.6.0",
+    "ts-jest": "^23.10.4",
+    "typescript": "^3.1.6"
+  }
 }
